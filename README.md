@@ -20,7 +20,7 @@ Is it possible to implement foo? Trivially, the answer is no, as [Infallible](ht
 fn head<T>(slice: &[T]) -> &T;
 ```
 
-This function returns the first element from a list. Is it possible to implement? It certainly doesn’t sound like it does anything very complicated, but if we attempt to implement it, the compiler won’t be satisfied (unless you `unwrap()`).
+This function returns the first element from a list. Is it possible to implement? It certainly doesn’t sound like it does anything very complicated, but if we attempt to implement it, the compiler won’t be satisfied (unless you panic).
 
 ```rust
 fn head<T>(slice: &[T]) -> &T {
@@ -58,5 +58,45 @@ For more information about this error, try `rustc --explain E0004`.
 error: could not compile `head` (bin "head") due to previous error
 ```
 
+This message is helpfully pointing out that our function is partial, which is to say it is not defined for all possible inputs. Specifically, it is not defined when the input is `&[]`, an empty slice. This makes sense, as it isn’t possible to return the first element of a slice if the slice is empty; there’s no element to return! So, remarkably, we learn this function isn’t possible to implement (without panicking), either.
 
+## Turning partial functions total
 
+To someone coming from a dynamically-typed background, this might seem perplexing. If we have a list, we might very well want to get the first element in it. And indeed, the operation of “getting the first element of a list” isn’t impossible in Rust (without panicking), it just requires a little extra ceremony. There are two different ways to fix the `head()` function, and we’ll start with the simplest one.
+
+### Managing expectations
+
+As established, `head()` is partial because there is no element to return if the slice is empty: we’ve made a promise we cannot possibly fulfill. Fortunately, there’s an easy solution to that dilemma: we can weaken our promise. Since we cannot guarantee the caller an element of the slice, we’ll have to practice a little expectation management: we’ll do our best return an element if we can, but we reserve the right to return nothing at all. In Rust, we express this possibility using the [`Option`](https://doc.rust-lang.org/std/option/enum.Option.html) type:
+
+```rust
+fn head<T>(slice: &[T]) -> Option<&T>;
+```
+
+This buys us the freedom we need to implement `head()`; it allows us to return `None` when we discover we can’t produce a value of type `T` after all:
+
+```rust
+fn head<T>(slice: &[T]) -> Option<&T> {
+    slice.get(0)
+}
+```
+
+Problem solved, right? For the moment, yes... but this solution has a hidden cost.
+
+Returning `Option` is undoubtably convenient when we’re implementing `head()`. However, it becomes significantly less convenient when we want to actually use it! Since `head()` always has the potential to return `None`, the burden falls upon its callers to handle that possibility, and sometimes that passing of the buck can be incredibly frustrating. To see why, consider the following code:
+
+```
+getConfigurationDirectories :: IO [FilePath]
+getConfigurationDirectories = do
+  configDirsString <- getEnv "CONFIG_DIRS"
+  let configDirsList = split ',' configDirsString
+  when (null configDirsList) $
+    throwIO $ userError "CONFIG_DIRS cannot be empty"
+  pure configDirsList
+
+main :: IO ()
+main = do
+  configDirs <- getConfigurationDirectories
+  case head configDirs of
+    Just cacheDir -> initializeCache cacheDir
+    Nothing -> error "should never happen; already checked configDirs is non-empty"
+```
