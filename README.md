@@ -1,4 +1,4 @@
-# Parse, don't validate (in Rust)
+# Parse, don't validate (in Rust!)
 
 [Parse, don't validate](https://lexi-lambda.github.io/blog/2019/11/05/parse-don-t-validate/) is a truly excellent introduction to the idea of type-driven design. However, its examples are written in Haskell, a notoriously difficult language for people unfamiliar with its syntax or functional programming paradigms to understand.
 
