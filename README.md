@@ -14,7 +14,7 @@ One of the wonderful things about static type systems is that they can make it p
 fn foo(num: u8) -> Infallible;
 ```
 
-Is it possible to implement foo? Trivially, the answer is no, as [Infallible](https://doc.rust-lang.org/std/convert/enum.Infallible.html) is a enum that contains no variants, so it’s impossible for any function to produce a value of type Infallible. That example is pretty boring, but the question gets much more interesting if we choose a more realistic example:
+Is it possible to implement foo? Trivially, the answer is no, as [Infallible](https://doc.rust-lang.org/std/convert/enum.Infallible.html) is an enum that contains no variants, so it’s impossible to even construct. That example is pretty boring, but the question gets much more interesting if we choose a more realistic example:
 
 ```rust
 fn head<T>(slice: &[T]) -> &T;
