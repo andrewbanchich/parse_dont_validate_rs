@@ -84,19 +84,37 @@ Problem solved, right? For the moment, yes... but this solution has a hidden cos
 
 Returning `Option` is undoubtably convenient when we’re implementing `head()`. However, it becomes significantly less convenient when we want to actually use it! Since `head()` always has the potential to return `None`, the burden falls upon its callers to handle that possibility, and sometimes that passing of the buck can be incredibly frustrating. To see why, consider the following code:
 
-```
-getConfigurationDirectories :: IO [FilePath]
-getConfigurationDirectories = do
-  configDirsString <- getEnv "CONFIG_DIRS"
-  let configDirsList = split ',' configDirsString
-  when (null configDirsList) $
-    throwIO $ userError "CONFIG_DIRS cannot be empty"
-  pure configDirsList
+```rust
+fn main() {
+    let config_dirs = get_configuration_directories();
 
-main :: IO ()
-main = do
-  configDirs <- getConfigurationDirectories
-  case head configDirs of
-    Just cacheDir -> initializeCache cacheDir
-    Nothing -> error "should never happen; already checked configDirs is non-empty"
+    match head(&config_dirs) {
+        Some(cache_dir) => initialize_cache(cache_dir),
+        None => panic!("should never happen; already checked configDirs is non-empty"),
+    }
+}
+
+fn get_configuration_directories() -> Vec<PathBuf> {
+    let config_dirs_string =
+        env::var("CONFIG_DIRS").expect("CONFIG_DIRS environment variable must be set");
+
+    let config_dirs_list: Vec<_> = config_dirs_string.split(',').map(|s| s.into()).collect();
+
+    if config_dirs_list.is_empty() {
+        panic!("CONFIG_DIRS cannot be empty")
+    }
+
+    config_dirs_list
+}
+     
 ```
+
+When `get_configuration_directories()` retrieves a `Vec` of file paths from the environment, it proactively checks that it is non-empty. However, when we use `head()` in `main()` to get the first element of the `Vec`, the `Option<PathBuf>` result still requires us to handle a `None` case that we know will never happen! This is terribly bad for several reasons:
+
+- First, it’s just annoying. We already checked that the `Vec` is non-empty, why do we have to clutter our code with another redundant check?
+
+- Second, it has a potential performance cost. Although the cost of the redundant check is trivial in this particular example, one could imagine a more complex scenario where the redundant checks could add up, such as if they were happening in a tight loop.
+
+- Finally, and worst of all, this code is a bug waiting to happen! What if `get_configuration_directories()` were modified to stop checking that the list is empty, intentionally or unintentionally? The programmer might not remember to update main, and suddenly the “impossible” error becomes not only possible, but probable.
+
+The need for this redundant check has essentially forced us to punch a hole in our type system. If we could statically prove the `None` case impossible, then a modification to `get_configuration_directories()` that stopped checking if the `Vec` was empty would invalidate the proof and trigger a compile-time failure. However, as-written, we’re forced to rely on a test suite or manual inspection to catch the bug.
