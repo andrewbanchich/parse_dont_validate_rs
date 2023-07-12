@@ -39,4 +39,11 @@ But one of the major points of "Parse, don't validate" is that you should not si
 
 ## Teach types how to think for themselves
 
+The two kinds of invariants we have discussed so far are:
 
+1. Nouns - what kind of a type something is and what fields or methods it has. Its shape.
+2. Value invariants - e.g. a `HashSet` is a list which enforces no duplicate values, and a `u16` is a number which enforces no negatives. If you think of other statically typed languages, are there any types which enforce anything that isn't related to the value?
+
+### Affine types
+
+In Rust, types can enforce a third category of invarant: "verbs". More precisely, it gives types the ability to say "no" to developers based on what the context of the callsite.
