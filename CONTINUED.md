@@ -13,7 +13,7 @@ I'd like to distill the article to a few key points:
 When we look at this picture we see two images - one very different from the other, but every stroke shared between them.
 Every computer program is the same; one codebase, but two different programs. The program for users is called "runtime", while the program for developers is "compile time".
 
-To "move a problem to compile time" is to enhance the developer program. We saw the effects of this in the "Parse, don't validate" article. Adding type safety means moving certain problems to compile time - the check for the list length disappeared, some code became simpler, and other code disappeared.
+To "move a problem to compile time" is to enhance the developer program. We saw the effects of this in the "Parse, don't validate" article. Adding type safety means moving certain problems to compile time - some code became simpler and other code disappeared.
 
 This effect is no different than that of moving from a dynamically typed language to a statically typed one. In JavaScript, for example, it's common to see code like
 
