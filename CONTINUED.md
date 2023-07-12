@@ -36,3 +36,7 @@ Rust adds other layers of default "language type safety" on top of this - thread
 ## Don't rely on default language type safety
 
 But one of the major points of "Parse, don't validate" is that you should not simply rely on the default language data structures to enforce your domain invariants. You can (and should) use them whenever you can, but creating your own custom types which wrap native language types allow you to educate the compiler, and code for developers, even more.
+
+## Teach types how to think for themselves
+
+
