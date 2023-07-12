@@ -266,27 +266,27 @@ Now the check cannot be omitted, since its result is actually necessary for the 
 
 This hypothetical scenario highlights two simple ideas:
 
-    Use a data structure that makes illegal states unrepresentable. Model your data using the most precise data structure you reasonably can. If ruling out a particular possibility is too hard using the encoding you are currently using, consider alternate encodings that can express the property you care about more easily. Don’t be afraid to refactor.
+- Use a data structure that makes illegal states unrepresentable. Model your data using the most precise data structure you reasonably can. If ruling out a particular possibility is too hard using the encoding you are currently using, consider alternate encodings that can express the property you care about more easily. Don’t be afraid to refactor.
 
-    Push the burden of proof upward as far as possible, but no further. Get your data into the most precise representation you need as quickly as you can. Ideally, this should happen at the boundary of your system, before any of the data is acted upon.3
+- Push the burden of proof upward as far as possible, but no further. Get your data into the most precise representation you need as quickly as you can. Ideally, this should happen at the boundary of your system, before any of the data is acted upon.3
 
-    If one particular code branch eventually requires a more precise representation of a piece of data, parse the data into the more precise representation as soon as the branch is selected. Use sum types judiciously to allow your datatypes to reflect and adapt to control flow.
+- If one particular code branch eventually requires a more precise representation of a piece of data, parse the data into the more precise representation as soon as the branch is selected. Use sum types judiciously to allow your datatypes to reflect and adapt to control flow.
 
 In other words, write functions on the data representation you wish you had, not the data representation you are given. The design process then becomes an exercise in bridging the gap, often by working from both ends until they meet somewhere in the middle. Don’t be afraid to iteratively adjust parts of the design as you go, since you may learn something new during the refactoring process!
 
 Here are a handful of additional points of advice, arranged in no particular order:
 
-    Let your datatypes inform your code, don’t let your code control your datatypes. Avoid the temptation to just stick a Bool in a record somewhere because it’s needed by the function you’re currently writing. Don’t be afraid to refactor code to use the right data representation—the type system will ensure you’ve covered all the places that need changing, and it will likely save you a headache later.
+- Let your datatypes inform your code, don’t let your code control your datatypes. Avoid the temptation to just stick a Bool in a record somewhere because it’s needed by the function you’re currently writing. Don’t be afraid to refactor code to use the right data representation—the type system will ensure you’ve covered all the places that need changing, and it will likely save you a headache later.
 
-    Treat functions that return m () with deep suspicion. Sometimes these are genuinely necessary, as they may perform an imperative effect with no meaningful result, but if the primary purpose of that effect is raising an error, it’s likely there’s a better way.
+- Treat functions that return m () with deep suspicion. Sometimes these are genuinely necessary, as they may perform an imperative effect with no meaningful result, but if the primary purpose of that effect is raising an error, it’s likely there’s a better way.
 
-    Don’t be afraid to parse data in multiple passes. Avoiding shotgun parsing just means you shouldn’t act on the input data before it’s fully parsed, not that you can’t use some of the input data to decide how to parse other input data. Plenty of useful parsers are context-sensitive.
+- Don’t be afraid to parse data in multiple passes. Avoiding shotgun parsing just means you shouldn’t act on the input data before it’s fully parsed, not that you can’t use some of the input data to decide how to parse other input data. Plenty of useful parsers are context-sensitive.
 
-    Avoid denormalized representations of data, especially if it’s mutable. Duplicating the same data in multiple places introduces a trivially representable illegal state: the places getting out of sync. Strive for a single source of truth.
+- Avoid denormalized representations of data, especially if it’s mutable. Duplicating the same data in multiple places introduces a trivially representable illegal state: the places getting out of sync. Strive for a single source of truth.
 
-        Keep denormalized representations of data behind abstraction boundaries. If denormalization is absolutely necessary, use encapsulation to ensure a small, trusted module holds sole responsibility for keeping the representations in sync.
+- Keep denormalized representations of data behind abstraction boundaries. If denormalization is absolutely necessary, use encapsulation to ensure a small, trusted module holds sole responsibility for keeping the representations in sync.
 
-    Use abstract datatypes to make validators “look like” parsers. Sometimes, making an illegal state truly unrepresentable is just plain impractical given the tools Haskell provides, such as ensuring an integer is in a particular range. In that case, use an abstract newtype with a smart constructor to “fake” a parser from a validator.
+- Use abstract datatypes to make validators “look like” parsers. Sometimes, making an illegal state truly unrepresentable is just plain impractical given the tools Haskell provides, such as ensuring an integer is in a particular range. In that case, use an abstract newtype with a smart constructor to “fake” a parser from a validator.
 
 As always, use your best judgement. It probably isn’t worth breaking out singletons and refactoring your entire application just to get rid of a single error "impossible" call somewhere—just make sure to treat those situations like the radioactive substance they are, and handle them with the appropriate care. If all else fails, at least leave a comment to document the invariant for whoever needs to modify the code next.
 
