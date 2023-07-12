@@ -11,7 +11,7 @@ I'd like to distill the article to a few key points:
 ![All is Vanity (1892) by Charles Allan Gilbert](https://github.com/andrewbanchich/parse_dont_validate_rs/assets/13824577/c1a08954-91ff-4cc3-b144-e71cb43c8dbb)
 
 When we look at this picture we see two images - one very different from the other, but every stroke shared between them.
-Every computer program is the same; one codebase, but two different programs. The program for users is called "runtime", while the program for developers is called "compile time".
+Every computer program is the same; one codebase, but two different programs. The program for users is called "runtime", while the program for developers is "compile time".
 
 To "move a problem to compile time" is to enhance the developer program. We saw the effects of this in the "Parse, don't validate" article. Adding type safety means moving certain problems to compile time - the check for the list length disappeared, some code became simpler, and other code disappeared.
 
