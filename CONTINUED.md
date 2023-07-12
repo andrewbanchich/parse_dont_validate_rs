@@ -46,4 +46,4 @@ The two kinds of invariants we have discussed so far are:
 
 ### Affine types
 
-In Rust, types can enforce a third category of invarant: "verbs". More precisely, it gives types the ability to say "no" to developers based on the context of the callsite.
+In Rust, types can enforce a third category of invarant: "verbs". More precisely, it gives types the ability to say "no" to developers based on the context of _the callsite_.
