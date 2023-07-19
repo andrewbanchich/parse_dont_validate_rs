@@ -258,7 +258,7 @@ However, this check is fragile: it’s extremely easy to forget. Because its ret
 
 Once you’ve done that, the call site of your new function will likely fail to typecheck, since it is still being passed a list of tuples. If the caller was given the value via one of its arguments, or if it received it from the result of some other function, you can continue updating the type from list to `HashMap`, all the way up the call chain. Eventually, you will either reach the location the value is created, or you’ll find a place where duplicates actually ought to be allowed. At that point, you can insert a call to a modified version of `check_no_duplicate_keys()`:
 
-```haskell
+```rust
 fn check_no_duplicate_keys<K: Eq + Hash, V>(slice: &[(K, V)]) -> Result<HashMap<K, V>, ValidationError>
 ```
 
