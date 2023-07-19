@@ -220,9 +220,9 @@ Under this flexible definition, parsers are an incredibly powerful tool: they al
 
 - The [`axum`](https://docs.rs/axum/latest/axum/) web server parses Rust datatypes from path components, query parameters, HTTP headers, and more.
 
-The common theme between all these libraries is that they sit on the boundary between your Haskell application and the external world. That world doesn’t speak in product and sum types, but in streams of bytes, so there’s no getting around a need to do some parsing. Doing that parsing up front, before acting on the data, can go a long way toward avoiding many classes of bugs, some of which might even be security vulnerabilities.
+The common theme between all these libraries is that they sit on the boundary between your Rust application and the external world. That world doesn’t speak in structs and enums, but in streams of bytes, so there’s no getting around a need to do some parsing. Doing that parsing up front, before acting on the data, can go a long way toward avoiding many classes of bugs, some of which might even be security vulnerabilities.
 
-One drawback to this approach of parsing everything up front is that it sometimes requires values be parsed long before they are actually used. In a dynamically-typed language, this can make keeping the parsing and processing logic in sync a little tricky without extensive test coverage, much of which can be laborious to maintain. However, with a static type system, the problem becomes marvelously simple, as demonstrated by the NonEmpty example above: if the parsing and processing logic go out of sync, the program will fail to even compile.
+One drawback to this approach of parsing everything up front is that it sometimes requires values be parsed long before they are actually used. In a dynamically-typed language, this can make keeping the parsing and processing logic in sync a little tricky without extensive test coverage, much of which can be laborious to maintain. However, with a static type system, the problem becomes marvelously simple, as demonstrated by the `NonEmptyVec` example above: if the parsing and processing logic go out of sync, the program will fail to even compile.
 
 ## The danger of validation
 
@@ -236,11 +236,11 @@ They go on to explain the problems inherent to such validation techniques:
 
 > *Shotgun parsing necessarily deprives the program of the ability to reject invalid input instead of processing it. Late-discovered errors in an input stream will result in some portion of invalid input having been processed, with the consequence that program state is difficult to accurately predict.*
 
-In other words, a program that does not parse all of its input up front runs the risk of acting upon a valid portion of the input, discovering a different portion is invalid, and suddenly needing to roll back whatever modifications it already executed in order to maintain consistency. Sometimes this is possible—such as rolling back a transaction in an RDBMS—but in general it may not be.
+In other words, a program that does not parse all of its input up front runs the risk of acting upon a valid portion of the input, discovering a different portion is invalid, and suddenly needing to roll back whatever modifications it already executed in order to maintain consistency. Sometimes this is possible — such as rolling back a transaction in an RDBMS — but in general it may not be.
 
-It may not be immediately apparent what shotgun parsing has to do with validation—after all, if you do all your validation up front, you mitigate the risk of shotgun parsing. The problem is that validation-based approaches make it extremely difficult or impossible to determine if everything was actually validated up front or if some of those so-called “impossible” cases might actually happen. The entire program must assume that raising an exception anywhere is not only possible, it’s regularly necessary.
+It may not be immediately apparent what shotgun parsing has to do with validation — after all, if you do all your validation up front, you mitigate the risk of shotgun parsing. The problem is that validation-based approaches make it extremely difficult or impossible to determine if everything was actually validated up front or if some of those so-called “impossible” cases might actually happen. The entire program must assume that raising an exception anywhere is not only possible, it’s regularly necessary.
 
-Parsing avoids this problem by stratifying the program into two phases—parsing and execution—where failure due to invalid input can only happen in the first phase. The set of remaining failure modes during execution is minimal by comparison, and they can be handled with the tender care they require.
+Parsing avoids this problem by stratifying the program into two phases — parsing and execution — where failure due to invalid input can only happen in the first phase. The set of remaining failure modes during execution is minimal by comparison, and they can be handled with the tender care they require.
 
 # Parsing, not validating, in practice
 
@@ -250,16 +250,16 @@ My advice: focus on the datatypes.
 
 Suppose you are writing a function that accepts a list of tuples representing key-value pairs, and you suddenly realize you aren’t sure what to do if the list has duplicate keys. One solution would be to write a function that asserts there aren’t any duplicates in the list:
 
-```haskell
-checkNoDuplicateKeys :: (MonadError AppError m, Eq k) => [(k, v)] -> m ()
+```rust
+fn check_no_duplicate_keys<K: PartialEq, V>(slice: &[(K, V)]) -> Result<(), ValidationError>
 ```
 
-However, this check is fragile: it’s extremely easy to forget. Because its return value is unused, it can always be omitted, and the code that needs it would still typecheck. A better solution is to choose a data structure that disallows duplicate keys by construction, such as a Map. Adjust your function’s type signature to accept a Map instead of a list of tuples, and implement it as you normally would.
+However, this check is fragile: it’s extremely easy to forget. Because its return value is unused, it can always be omitted, and the code that needs it would still typecheck. A better solution is to choose a data structure that disallows duplicate keys by construction, such as a `HashMap`. Adjust your function’s type signature to accept a `HashMap` instead of a list of tuples, and implement it as you normally would.
 
-Once you’ve done that, the call site of your new function will likely fail to typecheck, since it is still being passed a list of tuples. If the caller was given the value via one of its arguments, or if it received it from the result of some other function, you can continue updating the type from list to Map, all the way up the call chain. Eventually, you will either reach the location the value is created, or you’ll find a place where duplicates actually ought to be allowed. At that point, you can insert a call to a modified version of checkNoDuplicateKeys:
+Once you’ve done that, the call site of your new function will likely fail to typecheck, since it is still being passed a list of tuples. If the caller was given the value via one of its arguments, or if it received it from the result of some other function, you can continue updating the type from list to `HashMap`, all the way up the call chain. Eventually, you will either reach the location the value is created, or you’ll find a place where duplicates actually ought to be allowed. At that point, you can insert a call to a modified version of `check_no_duplicate_keys()`:
 
 ```haskell
-checkNoDuplicateKeys :: (MonadError AppError m, Eq k) => [(k, v)] -> m (Map k v)
+fn check_no_duplicate_keys<K: Eq + Hash, V>(slice: &[(K, V)]) -> Result<HashMap<K, V>, ValidationError>
 ```
 
 Now the check cannot be omitted, since its result is actually necessary for the program to proceed!
@@ -268,17 +268,17 @@ This hypothetical scenario highlights two simple ideas:
 
 - Use a data structure that makes illegal states unrepresentable. Model your data using the most precise data structure you reasonably can. If ruling out a particular possibility is too hard using the encoding you are currently using, consider alternate encodings that can express the property you care about more easily. Don’t be afraid to refactor.
 
-- Push the burden of proof upward as far as possible, but no further. Get your data into the most precise representation you need as quickly as you can. Ideally, this should happen at the boundary of your system, before any of the data is acted upon.3
+- Push the burden of proof upward as far as possible, but no further. Get your data into the most precise representation you need as quickly as you can. Ideally, this should happen at the boundary of your system, before any of the data is acted upon.
 
-- If one particular code branch eventually requires a more precise representation of a piece of data, parse the data into the more precise representation as soon as the branch is selected. Use sum types judiciously to allow your datatypes to reflect and adapt to control flow.
+- If one particular code branch eventually requires a more precise representation of a piece of data, parse the data into the more precise representation as soon as the branch is selected. Use generic types judiciously to allow your datatypes to reflect and adapt to control flow.
 
-In other words, write functions on the data representation you wish you had, not the data representation you are given. The design process then becomes an exercise in bridging the gap, often by working from both ends until they meet somewhere in the middle. Don’t be afraid to iteratively adjust parts of the design as you go, since you may learn something new during the refactoring process!
+In other words, **write functions on the data representation you wish you had, not the data representation you are given**. The design process then becomes an exercise in bridging the gap, often by working from both ends until they meet somewhere in the middle. Don’t be afraid to iteratively adjust parts of the design as you go, since you may learn something new during the refactoring process!
 
 Here are a handful of additional points of advice, arranged in no particular order:
 
 - Let your datatypes inform your code, don’t let your code control your datatypes. Avoid the temptation to just stick a Bool in a record somewhere because it’s needed by the function you’re currently writing. Don’t be afraid to refactor code to use the right data representation—the type system will ensure you’ve covered all the places that need changing, and it will likely save you a headache later.
 
-- Treat functions that return m () with deep suspicion. Sometimes these are genuinely necessary, as they may perform an imperative effect with no meaningful result, but if the primary purpose of that effect is raising an error, it’s likely there’s a better way.
+- Treat functions that return `Result<(), E>` with deep suspicion. Sometimes these are genuinely necessary, as they may perform an imperative effect with no meaningful result, but if the primary purpose of that effect is raising an error, it’s likely there’s a better way.
 
 - Don’t be afraid to parse data in multiple passes. Avoiding shotgun parsing just means you shouldn’t act on the input data before it’s fully parsed, not that you can’t use some of the input data to decide how to parse other input data. Plenty of useful parsers are context-sensitive.
 
@@ -289,13 +289,3 @@ Here are a handful of additional points of advice, arranged in no particular ord
 - Use abstract datatypes to make validators “look like” parsers. Sometimes, making an illegal state truly unrepresentable is just plain impractical given the tools Haskell provides, such as ensuring an integer is in a particular range. In that case, use an abstract newtype with a smart constructor to “fake” a parser from a validator.
 
 As always, use your best judgement. It probably isn’t worth breaking out singletons and refactoring your entire application just to get rid of a single error "impossible" call somewhere—just make sure to treat those situations like the radioactive substance they are, and handle them with the appropriate care. If all else fails, at least leave a comment to document the invariant for whoever needs to modify the code next.
-
-# Recap, reflection, and related reading
-
-That’s all, really. Hopefully this blog post proves that taking advantage of the Haskell type system doesn’t require a PhD, and it doesn’t even require using the latest and greatest of GHC’s shiny new language extensions—though they can certainly sometimes help! Sometimes the biggest obstacle to using Haskell to its fullest is simply being aware what options are available, and unfortunately, one downside of Haskell’s small community is a relative dearth of resources that document design patterns and techniques that have become tribal knowledge.
-
-None of the ideas in this blog post are new. In fact, the core idea—“write total functions”—is conceptually quite simple. Despite that, I find it remarkably challenging to communicate actionable, practicable details about the way I write Haskell code. It’s easy to spend lots of time talking about abstract concepts—many of which are quite valuable!—without communicating anything useful about process. My hope is that this is a small step in that direction.
-
-Sadly, I don’t know very many other resources on this particular topic, but I do know of one: I never hesitate to recommend Matt Parson’s fantastic blog post Type Safety Back and Forth. If you want another accessible perspective on these ideas, including another worked example, I’d highly encourage giving it a read. For a significantly more advanced take on many of these ideas, I can also recommend Matt Noonan’s 2018 paper Ghosts of Departed Proofs, which outlines a handful of techniques for capturing more complex invariants in the type system than I have described here.
-
-As a closing note, I want to say that doing the kind of refactoring described in this blog post is not always easy. The examples I’ve given are simple, but real life is often much less straightforward. Even for those experienced in type-driven design, it can be genuinely difficult to capture certain invariants in the type system, so do not consider it a personal failing if you cannot solve something the way you’d like! Consider the principles in this blog post ideals to strive for, not strict requirements to meet. All that matters is to try.
