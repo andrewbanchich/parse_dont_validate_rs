@@ -204,21 +204,21 @@ fn parse_non_empty<T>(mut vec: Vec<T>) -> Result<NonEmptyVec<T>, String> {
 }
 ```
 
-These two functions are nearly identical: they check if the provided list is empty, and if it is, they abort the program with an error message. The difference lies entirely in the return type: validateNonEmpty always returns (), the type that contains no information, but parseNonEmpty returns NonEmpty a, a refinement of the input type that preserves the knowledge gained in the type system. Both of these functions check the same thing, but parseNonEmpty gives the caller access to the information it learned, while validateNonEmpty just throws it away.
+These two functions are nearly identical: they check if the provided list is empty, and if it is, they return an error. The difference lies entirely in the return type: `validate_non_empty()` always returns () if successful. The type that contains no information, but `parse_non_empty()` returns `NonEmptyVec<T>`, a refinement of the input type that preserves the knowledge gained in the type system. Both of these functions check the same thing, but `parse_non_empty()` gives the caller access to the information it learned, while `validate_non_empty()` just throws it away.
 
-These two functions elegantly illustrate two different perspectives on the role of a static type system: validateNonEmpty obeys the typechecker well enough, but only parseNonEmpty takes full advantage of it. If you see why parseNonEmpty is preferable, you understand what I mean by the mantra “parse, don’t validate.” Still, perhaps you are skeptical of parseNonEmpty’s name. Is it really parsing anything, or is it merely validating its input and returning a result? While the precise definition of what it means to parse or validate something is debatable, I believe parseNonEmpty is a bona-fide parser (albeit a particularly simple one).
+These two functions elegantly illustrate two different perspectives on the role of a static type system: `validate_non_empty()` obeys the typechecker well enough, but only `parse_non_empty()` takes full advantage of it. If you see why `parse_non_empty()` is preferable, you understand what I mean by the mantra “parse, don’t validate.” Still, perhaps you are skeptical of `parse_non_empty()`’s name. Is it really parsing anything, or is it merely validating its input and returning a result? While the precise definition of what it means to parse or validate something is debatable, I believe `parse_non_empty()` is a bona-fide parser (albeit a particularly simple one).
 
-Consider: what is a parser? Really, a parser is just a function that consumes less-structured input and produces more-structured output. By its very nature, a parser is a partial function—some values in the domain do not correspond to any value in the range—so all parsers must have some notion of failure. Often, the input to a parser is text, but this is by no means a requirement, and parseNonEmpty is a perfectly cromulent parser: it parses lists into non-empty lists, signaling failure by terminating the program with an error message.
+Consider: what is a parser? Really, a parser is just a function that consumes less-structured input and produces more-structured output. By its very nature, a parser is a partial function — some values in the domain do not correspond to any value in the range — so all parsers must have some notion of failure. Often, the input to a parser is text, but this is by no means a requirement, and `parse_non_empty()` is a perfectly cromulent parser: it parses lists into non-empty lists, signaling failure by terminating the program with an error message.
 
-Under this flexible definition, parsers are an incredibly powerful tool: they allow discharging checks on input up-front, right on the boundary between a program and the outside world, and once those checks have been performed, they never need to be checked again! Haskellers are well-aware of this power, and they use many different types of parsers on a regular basis:
+Under this flexible definition, parsers are an incredibly powerful tool: they allow discharging checks on input up-front, right on the boundary between a program and the outside world, and once those checks have been performed, they never need to be checked again! Haskellers (and Rustaceans) are well-aware of this power, and they use many different types of parsers on a regular basis:
 
-- The aeson library provides a Parser type that can be used to parse JSON data into domain types.
+- The [`serde_json`](https://docs.rs/serde_json/latest/serde_json/) library provides functions that can be used to parse JSON data into domain types.
 
-- Likewise, optparse-applicative provides a set of parser combinators for parsing command-line arguments.
+- Likewise, [`clap`](https://docs.rs/clap/latest/clap/) provides various ways of parsing command-line arguments.
 
-- Database libraries like persistent and postgresql-simple have a mechanism for parsing values held in an external data store.
+- Database libraries [`SQLx`](https://github.com/launchbadge/sqlx) have mechanisms for parsing values held in an external data store.
 
-- The servant ecosystem is built around parsing Haskell datatypes from path components, query parameters, HTTP headers, and more.
+- The [`axum`](https://docs.rs/axum/latest/axum/) web server parses Rust datatypes from path components, query parameters, HTTP headers, and more.
 
 The common theme between all these libraries is that they sit on the boundary between your Haskell application and the external world. That world doesn’t speak in product and sum types, but in streams of bytes, so there’s no getting around a need to do some parsing. Doing that parsing up front, before acting on the data, can go a long way toward avoiding many classes of bugs, some of which might even be security vulnerabilities.
 
